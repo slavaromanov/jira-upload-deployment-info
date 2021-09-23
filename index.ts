@@ -2,53 +2,67 @@ import { iDeployment } from "./interfaces/iDeployment";
 import { iOptions } from "./interfaces/iOptions";
 import { URL } from "url";
 
-const core = require('@actions/core');
-const github = require('@actions/github');
 const request = require('request-promise-native');
 const dateFormat = require('dateformat');
 const token = require('@highwaythree/jira-github-actions-common');
 
+function parseState(state: string): string {
+    switch (state.toLowerCase()) {
+        case 'pending':
+            return 'pending'
+        case 'in_progress':
+            return 'in_progress'
+        case 'successful':
+            return 'successful'
+        case 'failed':
+            return 'failed'
+        case 'rolled_back':
+            return 'rolled_back'
+        default:
+            return 'unknown'
+    }
+}
+
 async function submitDeploymentInfo(accessToken: any) {
-    const cloudInstanceBaseUrl = core.getInput('cloud-instance-base-url');
+    const cloudInstanceBaseUrl = process.env.CLOUD_INSTANCE_BASE_URL;
     const cloudURL = new URL('/_edge/tenant_info', cloudInstanceBaseUrl);
     let cloudId = await request(cloudURL.href);
     cloudId = JSON.parse(cloudId);
     cloudId = cloudId.cloudId;
-    const deploymentSequenceNumber = core.getInput('deployment-sequence-number');
-    const updateSequenceNumber = core.getInput('update-sequence-number');
-    const issueKeys = core.getInput('issue-keys');
-    const displayName = core.getInput('display-name');
-    const url = core.getInput('url');
-    const description = core.getInput('description');
-    let lastUpdated = core.getInput('last-updated');
-    const label = core.getInput('label');
-    const state = core.getInput('state');
-    const pipelineId = core.getInput('pipeline-id');
-    const pipelineDisplayName = core.getInput('pipeline-display-name');
-    const pipelineUrl = core.getInput('pipeline-url');
-    const environmentId = core.getInput('environment-id');
-    const environmentDisplayName = core.getInput('environment-display-name');
-    const environmentType = core.getInput('environment-type');
+    const deploymentSequenceNumber = process.env.DEPLOYMENT_SEQUENCE_NUMBER;
+    const updateSequenceNumber = process.env.UPDATE_SEQUENCE_NUMBER;
+    let issueKeys = process.env.ISSUE_KEYS || '';
+    const displayName = process.env.DISPLAY_NAME;
+    const url = process.env.URL;
+    const description = process.env.DESCRIPTION;
+    let lastUpdated = process.env.LAST_UPDATED || dateFormat(new Date(), "yyyy-mm-dd'T'HH:MM:ss'Z'");
+    const label = process.env.LABEL;
+    const state = parseState(process.env.STATE || '');
+    const pipelineId = process.env.PIPELINE_ID;
+    const pipelineDisplayName = process.env.PIPELINE_DISPLAY_NAME;
+    const pipelineUrl = process.env.PIPELINE_URL;
+    const environmentId = process.env.ENVIRONMENT_ID;
+    const environmentDisplayName = process.env.ENVIRONMENT_DISPLAY_NAME;
+    const environmentType = process.env.ENVIRONMENT_TYPE;
 
     // console.log("lastUpdated: " + lastUpdated);
-    lastUpdated = dateFormat(lastUpdated, "yyyy-mm-dd'T'HH:MM:ss'Z'");
 
     const deployment: iDeployment =
     {
         schemaVersion: "1.0",
-        deploymentSequenceNumber: deploymentSequenceNumber || process.env['GITHUB_RUN_ID'],
-        updateSequenceNumber: updateSequenceNumber || process.env['GITHUB_RUN_ID'],
+        deploymentSequenceNumber: deploymentSequenceNumber,
+        updateSequenceNumber: updateSequenceNumber,
         issueKeys: issueKeys.split(',') || [],
         displayName: displayName || '',
-        url: url || `${github.context.payload.repository.url}/actions/runs/${process.env['GITHUB_RUN_ID']}`,
+        url: url || '',
         description: description || '',
         lastUpdated: lastUpdated || '',
         label: label || '',
-        state: state || '',
+        state: state,
         pipeline: {
-            id: pipelineId || `${github.context.payload.repository.full_name} ${github.context.workflow}`,
-            displayName: pipelineDisplayName || `Workflow: ${github.context.workflow } (#${ process.env['GITHUB_RUN_NUMBER'] })`,
-            url: pipelineUrl || `${github.context.payload.repository.url}/actions/runs/${process.env['GITHUB_RUN_ID']}`,
+            id: pipelineId || '',
+            displayName: pipelineDisplayName || '',
+            url: pipelineUrl || '',
         },
         environment: {
             id: environmentId || '',
@@ -78,26 +92,27 @@ async function submitDeploymentInfo(accessToken: any) {
     let response = JSON.parse(responseJson);
     if(response.rejectedDeployments && response.rejectedDeployments.length > 0) {
         const rejectedDeployment = response.rejectedDeployments[0];
-        // console.log("errors: ", rejectedDeployment.errors);
+        console.log("errors: ", rejectedDeployment.errors);
         let errors = rejectedDeployment.errors.map((error: any) => error.message).join(',');
         errors.substr(0, errors.length - 1);
-        // console.log("joined errors: ", errors);
-        core.setFailed(errors);
+        console.log("joined errors: ", errors);
+        process.exit(1);
     }
-
-    core.setOutput("response", responseJson);
+    console.log(response);
 }
 
 (async function () {
     try {
-        const clientId = core.getInput('client-id');
-        const clientSecret = core.getInput('client-secret');
+        const clientId = process.env.JIRA_CLIENT_ID;
+        const clientSecret = process.env.JIRA_SECRET;
         const accessTokenResponse = await token.getAccessToken(clientId, clientSecret);
         await submitDeploymentInfo(accessTokenResponse.access_token);
         // console.log("finished submitting deployment info");
     } catch (error) {
-        core.setFailed(error.message);
+        console.error(error);
+        process.exit(1);
     }
+    process.exit(0);
 })();
 
 export {submitDeploymentInfo}
