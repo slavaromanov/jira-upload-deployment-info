@@ -32,18 +32,18 @@ async function submitDeploymentInfo(accessToken: any) {
     const deploymentSequenceNumber = process.env.DEPLOYMENT_SEQUENCE_NUMBER;
     const updateSequenceNumber = process.env.UPDATE_SEQUENCE_NUMBER;
     let issueKeys = process.env.ISSUE_KEYS || '';
-    const displayName = process.env.DISPLAY_NAME;
-    const url = process.env.URL;
-    const description = process.env.DESCRIPTION;
+    const displayName = process.env.DISPLAY_NAME || '';
+    const url = process.env.URL || '';
+    const description = process.env.DESCRIPTION || '';
     let lastUpdated = process.env.LAST_UPDATED || dateFormat(new Date(), "yyyy-mm-dd'T'HH:MM:ss'Z'");
-    const label = process.env.LABEL;
+    const label = process.env.LABEL || '';
     const state = parseState(process.env.STATE || '');
-    const pipelineId = process.env.PIPELINE_ID;
-    const pipelineDisplayName = process.env.PIPELINE_DISPLAY_NAME;
-    const pipelineUrl = process.env.PIPELINE_URL;
-    const environmentId = process.env.ENVIRONMENT_ID;
-    const environmentDisplayName = process.env.ENVIRONMENT_DISPLAY_NAME;
-    const environmentType = process.env.ENVIRONMENT_TYPE;
+    const pipelineId = process.env.PIPELINE_ID || '';
+    const pipelineDisplayName = process.env.PIPELINE_DISPLAY_NAME || '';
+    const pipelineUrl = process.env.PIPELINE_URL || '';
+    const environmentId = process.env.ENVIRONMENT_ID || '';
+    const environmentDisplayName = process.env.ENVIRONMENT_DISPLAY_NAME || '';
+    const environmentType = process.env.ENVIRONMENT_TYPE || '';
 
     // console.log("lastUpdated: " + lastUpdated);
 
@@ -52,22 +52,22 @@ async function submitDeploymentInfo(accessToken: any) {
         schemaVersion: "1.0",
         deploymentSequenceNumber: deploymentSequenceNumber,
         updateSequenceNumber: updateSequenceNumber,
-        issueKeys: issueKeys.split(',') || [],
-        displayName: displayName || '',
-        url: url || '',
-        description: description || '',
-        lastUpdated: lastUpdated || '',
-        label: label || '',
+        issueKeys: issueKeys.split(','),
+        displayName: displayName,
+        url: url,
+        description: description,
+        lastUpdated: lastUpdated,
+        label: label,
         state: state,
         pipeline: {
-            id: pipelineId || '',
-            displayName: pipelineDisplayName || '',
-            url: pipelineUrl || '',
+            id: pipelineId,
+            displayName: pipelineDisplayName,
+            url: pipelineUrl,
         },
         environment: {
-            id: environmentId || '',
-            displayName: environmentDisplayName || '',
-            type: environmentType || '',
+            id: environmentId,
+            displayName: environmentDisplayName,
+            type: environmentType,
         }
     };
 
